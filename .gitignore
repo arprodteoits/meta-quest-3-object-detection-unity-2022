@@ -1,0 +1,53 @@
+# ======================
+# Unity
+# ======================
+[Ll]ibrary/
+[Tt]emp/
+[Oo]bj/
+[Bb]uild/
+[Bb]uilds/
+[Ll]ogs/
+UserSettings/
+
+
+# Visual Studio / Rider
+.vs/
+.vscode/
+*.csproj
+*.sln
+*.user
+*.pidb
+*.booproj
+*.svd
+
+
+# Meta Quest / Android
+*.apk
+*.aab
+
+
+# ======================
+# Python / AI
+# ======================
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+venv/
+.env
+
+
+# AI Models (besar)
+*.pt
+*.onnx
+*.tflite
+*.h5
+
+
+# Dataset
+/datasets/
+
+
+# OS
+.DS_Store
+Thumbs.db
