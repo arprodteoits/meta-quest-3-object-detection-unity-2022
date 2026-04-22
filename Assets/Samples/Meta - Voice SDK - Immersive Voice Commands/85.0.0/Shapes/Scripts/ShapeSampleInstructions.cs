@@ -59,7 +59,7 @@ namespace Meta.Voice.Samples.Shapes
 
         private Step currentStep = Step.Ready;
         internal Step CurrentStep => currentStep;
-        internal string CurrentStepText => steps[(int)currentStep];
+        internal string CurrentStepText => steps[(int) currentStep];
 
         private void OnValidate()
         {
@@ -78,12 +78,8 @@ namespace Meta.Voice.Samples.Shapes
 
         private void UpdateStep()
         {
-            if (Application.isPlaying)
-            {
-                return;
-            }
 #if UNITY_EDITOR
-            var appVoiceExperience = FindAnyObjectByType<AppVoiceExperience>();
+            var appVoiceExperience = FindObjectOfType<AppVoiceExperience>();
             string[] guids = AssetDatabase.FindAssets("t:WitConfiguration");
             if (guids.Length == 0)
             {
@@ -159,7 +155,7 @@ namespace Meta.Voice.Samples.Shapes
 
             if (GUILayout.Button("Select Wit Config"))
             {
-                Selection.activeObject = (FindAnyObjectByType<AppVoiceExperience>()
+                Selection.activeObject = (FindObjectOfType<AppVoiceExperience>()
                     .RuntimeConfiguration.witConfiguration);
             }
 

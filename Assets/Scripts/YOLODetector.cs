@@ -1,12 +1,14 @@
 using UnityEngine;
 using Unity.Sentis;
 
-float inferenceInterval = 0.2f; 
-float lastInferenceTime = 0f;
+
 
 public class YOLODetector : MonoBehaviour
 {
     public ModelAsset modelAsset;
+
+    float inferenceInterval = 0.2f; 
+    float lastInferenceTime = 0f;
 
     private WebCamTexture webcam;
     private Worker worker;
@@ -23,24 +25,27 @@ public class YOLODetector : MonoBehaviour
 
         // Create worker
         worker = new Worker(runtimeModel, BackendType.GPUCompute);
+
+        Debug.Log("YOLO started");
     }
 
-    void Update()
-    {
-        if (webcam.width <= 16) return;
+void Update()
+{
+    if (webcam.width <= 16) return;
 
-        // Convert webcam texture → tensor
-        var input = TextureConverter.ToTensor(webcam, 640, 640, 3);
+    if (Time.time - lastInferenceTime < inferenceInterval)
+        return;
 
-        // Run inference
-        worker.Schedule(input);
+    lastInferenceTime = Time.time;
 
-        // Get output
-        var output = worker.PeekOutput();
+    var input = TextureConverter.ToTensor(webcam, 640, 640, 3);
 
-        Debug.Log("YOLO inference running");
-        Debug.Log("Output shape: " + output.shape);
-    }
+    worker.Schedule(input);
+
+    var output = worker.PeekOutput();
+
+    Debug.Log("YOLO inference running");
+}
 
     void OnDestroy()
     {
