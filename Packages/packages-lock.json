@@ -87,15 +87,6 @@
       "dependencies": {},
       "url": "https://packages.unity.com"
     },
-    "com.meta.xr.simulator.synthenvbuilder": {
-      "version": "60.0.1",
-      "depth": 0,
-      "source": "registry",
-      "dependencies": {
-        "com.unity.postprocessing": "3.2.2"
-      },
-      "url": "https://packages.unity.com"
-    },
     "com.unity.ai.navigation": {
       "version": "1.1.6",
       "depth": 2,
@@ -185,15 +176,6 @@
       "depth": 2,
       "source": "registry",
       "dependencies": {},
-      "url": "https://packages.unity.com"
-    },
-    "com.unity.postprocessing": {
-      "version": "3.4.0",
-      "depth": 1,
-      "source": "registry",
-      "dependencies": {
-        "com.unity.modules.physics": "1.0.0"
-      },
       "url": "https://packages.unity.com"
     },
     "com.unity.render-pipelines.core": {
