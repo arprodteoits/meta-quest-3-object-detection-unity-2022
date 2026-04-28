@@ -1,0 +1,45 @@
+// Nama kernel (fungsi utama) yang akan dipanggil dari C#
+#pragma kernel CSMain
+
+// --- INPUT DARI KAMERA META QUEST ---
+// Kamera Quest memisahkan kecerahan (Y) dan warna (UV) ke dalam dua tekstur berbeda.
+Texture2D<float> YTex;      // Tekstur Kecerahan (Hitam-Putih)
+Texture2D<float2> UVTex;    // Tekstur Warna (Setengah resolusi dari Y)
+
+// --- OUTPUT UNTUK YOLO ---
+// Tekstur tujuan yang sudah berwarna normal (RGB)
+RWTexture2D<float4> Result; 
+
+// Resolusi gambar
+uint width;
+uint height;
+
+// Kita membagi pekerjaan GPU ke dalam blok-blok berukuran 8x8 piksel
+[numthreads(8, 8, 1)]
+void CSMain (uint3 id : SV_DispatchThreadID)
+{
+    // Cek batas agar GPU tidak memproses di luar ukuran gambar
+    if (id.x >= width || id.y >= height) return;
+
+    // 1. Ambil nilai kecerahan (Luminance) dari piksel saat ini
+    float y = YTex[id.xy];
+
+    // 2. Ambil nilai warna (Chrominance). 
+    // Karena format NV12 menyimpan UV dalam resolusi setengah dari Y, koordinatnya dibagi 2
+    uint2 uvCoord = uint2(id.x / 2, id.y / 2);
+    float2 uv = UVTex[uvCoord];
+
+    // 3. Normalisasi nilai UV (menggeser titik tengah warna)
+    float u = uv.x - 0.5;
+    float v = uv.y - 0.5;
+
+    // 4. RUMUS MATEMATIKA: Konversi YUV ke RGB (Standar BT.709)
+    // Ini adalah rumus paten untuk mengubah warna format siaran TV/Kamera ke layar komputer
+    float r = y + 1.5748 * v;
+    float g = y - 0.1873 * u - 0.4681 * v;
+    float b = y + 1.8556 * u;
+
+    // 5. Tulis hasil akhirnya ke Tekstur Output (siap disuapkan ke AI)
+    // r, g, b, dan 1.0 (Alpha/Opaque)
+    Result[id.xy] = float4(r, g, b, 1.0);
+}
