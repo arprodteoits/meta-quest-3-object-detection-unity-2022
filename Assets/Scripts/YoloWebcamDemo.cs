@@ -1,117 +1,87 @@
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using Unity.Sentis;
+using Unity.Sentis; // Ganti using Unity.Sentis.Layers; ke using Unity.Sentis; untuk versi 2.1.3
 using UnityEngine.UI;
 
 public class YoloWebcamDemo : MonoBehaviour
 {
-    [Header("AI & GPU Settings")]
+    [Header("Sentis AI")]
     public ModelAsset modelAsset;
-    public ComputeShader yuvToRgbShader; // Tempat memasukkan YUVToRGBShader kamu
     private Model runtimeModel;
-    private Worker worker;
+    private Worker worker; // Sentis 2.1.3 menggunakan Worker (tanpa 'I')
     private Tensor<float> inputTensor;
 
-    [Header("UI & Visuals")]
-    public RectTransform displayArea; 
+    [Header("Kamera & UI")]
+    public RawImage displayImage;
     public GameObject boxPrefab; 
-    private List<GameObject> activeBoxes = new List<GameObject>();
-
-    [Header("Performance Throttling")]
-    public float inferenceInterval = 0.2f; // 5 FPS
-    private float timer = 0f;
-
-    [Header("YOLO Parameters")]
-    [Range(0.0f, 1.0f)] public float confidenceThreshold = 0.35f;
-    [Range(0.0f, 1.0f)] public float smoothingFactor = 0.85f; 
-
-    private const int NUM_PROPOSALS = 8400; 
-    private const int IMAGE_SIZE = 640;
     
-    // Tekstur RGB hasil konversi GPU
-    private RenderTexture rgbRenderTexture;
-    private int kernelIndex;
+    private WebCamTexture webcamTexture;
+    private List<GameObject> activeBoxes = new List<GameObject>(); // Menyimpan kotak yang tampil
 
+    // --- TEMPORAL SMOOTHING VARIABLES ---
+    // Kita simpan posisi 'rata-rata' kotak sebelumnya
     private BoundingBox previousSmoothedBox;
     private bool hasPreviousBox = false;
 
-    public struct BoundingBox { public float cx, cy, w, h, conf; }
+    // Seberapa mulus pergerakan kotak (0.0f = tidak mulus sama sekali, 1.0f = kotak tidak bergerak)
+    // Coba ganti nilainya antara 0.6f - 0.9f untuk melihat perbedaan
+    [Range(0.0f, 1.0f)]
+    public float smoothingFactor = 0.85f; 
+    
+    // Threshold confidence AI, turunkan untuk membuat AI lebih 'pemaaf'
+    [Range(0.0f, 1.0f)]
+    public float confidenceThreshold = 0.35f;
+    public ObjectInteractionManager interactionManager;
+
+    // Total tebakan YOLO
+    private const int NUM_PROPOSALS = 8400; 
+    private const int IMAGE_SIZE = 640;
+
+    // Struktur data untuk kotak
+    public struct BoundingBox
+    {
+        public float cx, cy, w, h, conf;
+    }
 
     void Start()
     {
-        // 1. Inisialisasi Otak Sentis
+        // 1. Setup Kamera
+        webcamTexture = new WebCamTexture();
+        if (displayImage != null) displayImage.texture = webcamTexture;
+        webcamTexture.Play();
+
+        // 2. Setup Sentis (Sintaks versi 2.1.3)
         if (modelAsset != null)
         {
             runtimeModel = ModelLoader.Load(modelAsset);
+            // new Worker(...) untuk membuat worker di Sentis 2.1.3
             worker = new Worker(runtimeModel, BackendType.GPUCompute);
             inputTensor = new Tensor<float>(new TensorShape(1, 3, IMAGE_SIZE, IMAGE_SIZE));
-        }
-
-        // 2. Siapkan "Kanvas Kosong" (RenderTexture) untuk hasil Compute Shader
-        // Ukuran 640x640 disesuaikan langsung dengan mulut YOLO
-        rgbRenderTexture = new RenderTexture(IMAGE_SIZE, IMAGE_SIZE, 0, RenderTextureFormat.ARGB32);
-        rgbRenderTexture.enableRandomWrite = true; // Wajib agar Compute Shader bisa menggambar di sini
-        rgbRenderTexture.Create();
-
-        if (yuvToRgbShader != null)
-        {
-            kernelIndex = yuvToRgbShader.FindKernel("CSMain");
+            Debug.Log("Selamat! Sistem AI & Temporal Smoothing Siap!");
         }
     }
 
     void Update()
     {
-        timer += Time.deltaTime;
-
-        // Hanya jalankan AI setiap beberapa milidetik (Throttling)
-        if (timer >= inferenceInterval)
+        if (webcamTexture != null && webcamTexture.didUpdateThisFrame)
         {
-            ProcessCameraFrame();
-            timer = 0f;
+            ExecuteInference();
         }
     }
 
-    void ProcessCameraFrame()
+    void ExecuteInference()
     {
-        // --- BLOK PENYEDOT KAMERA META QUEST ---
-        // Karena ini adalah prototipe, kita asumsikan OVRManager sudah memberikan akses.
-        // Di aplikasi penuh, di sini kita memanggil OVRPlugin.GetPassthroughCameraFrame()
-        // Namun, untuk menghindari error kompilasi karena perbedaan versi SDK, 
-        // kita akan melakukan konversi gambar yang terlihat di layar secara aman via GPU.
-
-        Texture2D currentScreen = ScreenCapture.CaptureScreenshotAsTexture();
-        if (currentScreen == null) return;
-
-        // Jalankan Compute Shader untuk membersihkan dan menyesuaikan gambar
-        if (yuvToRgbShader != null)
-        {
-            yuvToRgbShader.SetTexture(kernelIndex, "YTex", currentScreen); // Simulasi input
-            yuvToRgbShader.SetTexture(kernelIndex, "UVTex", currentScreen); // Simulasi input
-            yuvToRgbShader.SetTexture(kernelIndex, "Result", rgbRenderTexture);
-            
-            // Bagi tugas ke GPU (640/8 = 80 blok kerja)
-            yuvToRgbShader.Dispatch(kernelIndex, IMAGE_SIZE / 8, IMAGE_SIZE / 8, 1);
-        }
-
-        // Suapkan hasil konversi GPU ke Sentis AI
-        ExecuteInference(rgbRenderTexture);
-        
-        Destroy(currentScreen); // Cegah memori bocor (Memory Leak)
-    }
-
-    void ExecuteInference(RenderTexture sourceTexture)
-    {
-        if (worker == null || inputTensor == null) return;
-
         TextureTransform transform = new TextureTransform().SetDimensions(IMAGE_SIZE, IMAGE_SIZE).SetTensorLayout(TensorLayout.NCHW);
-        TextureConverter.ToTensor(sourceTexture, inputTensor, transform);
-        worker.Schedule(inputTensor);
+        TextureConverter.ToTensor(webcamTexture, inputTensor, transform);
+        worker.Schedule(inputTensor); // Sentis 2.1.3 menggunakan .Schedule()
 
+        // Ambil hasil tensor
         Tensor<float> outputTensor = worker.PeekOutput() as Tensor<float>;
         
         if (outputTensor != null)
         {
+            // --- FIXED DownloadToArray() ---
+            // .DownloadToArray() untuk Sentis 2.1.3 agar data turun dari GPU ke CPU
             float[] data = outputTensor.DownloadToArray();
             ParseYOLOOutput(data);
         }
@@ -121,9 +91,12 @@ public class YoloWebcamDemo : MonoBehaviour
     {
         List<BoundingBox> boxes = new List<BoundingBox>();
 
+        // 1. FILTERING: Loop semua tebakan
         for (int i = 0; i < NUM_PROPOSALS; i++)
         {
             float conf = data[4 * NUM_PROPOSALS + i];
+            
+            // Gunakan Threshold yang lebih pemaaf agar kotak tidak mudah hilang
             if (conf > confidenceThreshold)
             {
                 BoundingBox box = new BoundingBox
@@ -138,7 +111,8 @@ public class YoloWebcamDemo : MonoBehaviour
             }
         }
 
-        boxes.Sort((a, b) => b.conf.CompareTo(a.conf));
+        // 2. NON-MAXIMUM SUPPRESSION (NMS): Hapus kotak yang numpuk
+        boxes.Sort((a, b) => b.conf.CompareTo(a.conf)); // Urutkan dari yang paling yakin
         List<BoundingBox> finalBoxes = new List<BoundingBox>();
 
         foreach (var box in boxes)
@@ -146,7 +120,7 @@ public class YoloWebcamDemo : MonoBehaviour
             bool isOverlapping = false;
             foreach (var finalBox in finalBoxes)
             {
-                if (CalculateIoU(box, finalBox) > 0.45f)
+                if (CalculateIoU(box, finalBox) > 0.45f) // Batas tumpukan 45%
                 {
                     isOverlapping = true;
                     break;
@@ -155,10 +129,14 @@ public class YoloWebcamDemo : MonoBehaviour
             if (!isOverlapping) finalBoxes.Add(box);
         }
 
+        // --- APPLY TEMPORAL SMOOTHING ---
+        // Jika kita berhasil mendeteksi setidaknya satu kotak
         if (finalBoxes.Count > 0)
         {
+            // Ambil tebakan mentah terbaik dari YOLO
             BoundingBox currentRawBox = finalBoxes[0];
 
+            // Jika sebelumnya kita belum punya data smoothing (frame pertama)
             if (!hasPreviousBox)
             {
                 previousSmoothedBox = currentRawBox;
@@ -166,44 +144,67 @@ public class YoloWebcamDemo : MonoBehaviour
             }
             else
             {
+                // **Rumus Smoothing Sederhana**
+                // Rata-rata tertimbang antara posisi lama dan posisi baru
                 previousSmoothedBox.cx = Mathf.Lerp(currentRawBox.cx, previousSmoothedBox.cx, smoothingFactor);
                 previousSmoothedBox.cy = Mathf.Lerp(currentRawBox.cy, previousSmoothedBox.cy, smoothingFactor);
                 previousSmoothedBox.w = Mathf.Lerp(currentRawBox.w, previousSmoothedBox.w, smoothingFactor);
                 previousSmoothedBox.h = Mathf.Lerp(currentRawBox.h, previousSmoothedBox.h, smoothingFactor);
+                // previousSmoothedBox.conf = currentRawBox.conf;
             }
 
-            DrawBoxes(new List<BoundingBox> { previousSmoothedBox });
+            // Gunakan kotak rata-rata ini untuk menggambar di layar
+            List<BoundingBox> smoothedBoxes = new List<BoundingBox>();
+            smoothedBoxes.Add(previousSmoothedBox);
+            DrawBoxes(smoothedBoxes);
         }
         else
         {
+            // Jika tidak ada deteksi, hapus kotak (opsional, bisa juga kita biarkan bertahan sejenak)
             DrawBoxes(new List<BoundingBox>());
-            hasPreviousBox = false;
+            hasPreviousBox = false; // Reset smoothing jika objek hilang
+        }
+
+        // Tambahkan ini di akhir fungsi ParseYOLOOutput sebelum fungsi DrawBoxes dipanggil
+        if (interactionManager != null)
+        {
+            List<ObjectInteractionManager.DetectedObject> results = new List<ObjectInteractionManager.DetectedObject>();
+            foreach (var box in finalBoxes) // atau smoothedBoxes jika Anda menggunakan smoothing
+            {
+                results.Add(new ObjectInteractionManager.DetectedObject {
+                    label = "Bottle",
+                    centroid = new Vector2(box.cx, box.cy)
+                });
+            }
+            interactionManager.UpdateDetections(results);
         }
     }
 
     void DrawBoxes(List<BoundingBox> boxesToDraw)
     {
+        // Hapus kotak frame sebelumnya
         foreach (var boxObj in activeBoxes) Destroy(boxObj);
         activeBoxes.Clear();
 
-        if (displayArea == null) return;
-
-        Vector2 uiSize = displayArea.rect.size;
+        Vector2 uiSize = displayImage.rectTransform.rect.size;
 
         foreach (var box in boxesToDraw)
         {
-            GameObject newBox = Instantiate(boxPrefab, displayArea);
+            GameObject newBox = Instantiate(boxPrefab, displayImage.transform);
             RectTransform rt = newBox.GetComponent<RectTransform>();
 
+            // Paksa Anchor & Pivot ke tengah (0.5, 0.5) untuk mencegah kotak melar
             rt.anchorMin = new Vector2(0.5f, 0.5f);
             rt.anchorMax = new Vector2(0.5f, 0.5f);
             rt.pivot = new Vector2(0.5f, 0.5f);
 
+            // Normalisasi koordinat YOLO (640x640)
             float xNorm = box.cx / IMAGE_SIZE;
             float yNorm = box.cy / IMAGE_SIZE;
             float wNorm = box.w / IMAGE_SIZE;
             float hNorm = box.h / IMAGE_SIZE;
 
+            // Konversi ke ukuran layar UI
             float uiX = (xNorm * uiSize.x) - (uiSize.x / 2f);
             float uiY = (uiSize.y / 2f) - (yNorm * uiSize.y); 
 
@@ -222,13 +223,16 @@ public class YoloWebcamDemo : MonoBehaviour
         float yB = Mathf.Min(boxA.cy + boxA.h / 2, boxB.cy + boxB.h / 2);
 
         float interArea = Mathf.Max(0, xB - xA) * Mathf.Max(0, yB - yA);
-        return interArea / (boxA.w * boxA.h + boxB.w * boxB.h - interArea);
+        float boxAArea = boxA.w * boxA.h;
+        float boxBArea = boxB.w * boxB.h;
+
+        return interArea / (boxAArea + boxBArea - interArea);
     }
 
     private void OnDisable()
     {
         worker?.Dispose();
         inputTensor?.Dispose();
-        if (rgbRenderTexture != null) rgbRenderTexture.Release();
+        if (webcamTexture != null) webcamTexture.Stop();
     }
 }
