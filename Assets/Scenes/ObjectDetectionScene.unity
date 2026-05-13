@@ -503,14 +503,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 705038f41f3878b4ab8880a1be29429e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  modelAsset: {fileID: 5022602860645237092, guid: cb91889edf4bb1542a5a2504f3639a71,
+  modelAsset: {fileID: 5022602860645237092, guid: e68014f88bf863042af6722f7caf05d2,
     type: 3}
   displayImage: {fileID: 329769389}
   boxPrefab: {fileID: 243452841342138518, guid: db0ca2285da028e4fb8d7fc42feb69e4,
     type: 3}
+  interactionManager: {fileID: 922149148}
   smoothingFactor: 0.85
   confidenceThreshold: 0.35
-  interactionManager: {fileID: 922149148}
 --- !u!1 &1419503252
 GameObject:
   m_ObjectHideFlags: 0
