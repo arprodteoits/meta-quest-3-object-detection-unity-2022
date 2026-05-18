@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using Unity.Sentis; 
 using UnityEngine.UI;
+using TMPro;
 
 public class YoloWebcamDemo : MonoBehaviour
 {
@@ -40,42 +41,47 @@ public class YoloWebcamDemo : MonoBehaviour
     }
 
     void Start() {
-      WebCamDevice[] devices = WebCamTexture.devices;
-    string selectedCameraName = "";
+         webcamTexture = new WebCamTexture();
+        if (displayImage != null) displayImage.texture = webcamTexture;
+        webcamTexture.Play();
 
-    Debug.Log("--- Mencari Kamera Eksternal ---");
-    for (int i = 0; i < devices.Length; i++) {
-        Debug.Log($"Ditemukan Indeks [{i}]: {devices[i].name}");
+    // void Start() {
+    //   WebCamDevice[] devices = WebCamTexture.devices;
+    // // string selectedCameraName = "";
 
-        // Cari yang namanya mengandung "Logitech" (tidak peduli huruf besar/kecil)
-        if (devices[i].name.ToLower().Contains("logitech")) {
-            selectedCameraName = devices[i].name;
-            Debug.Log("Kamera Logitech Ditemukan! Menggunakan: " + selectedCameraName);
-            break; 
-        }
-    }
+    // Debug.Log("--- Mencari Kamera Eksternal ---");
+    // for (int i = 0; i < devices.Length; i++) {
+    //     Debug.Log($"Ditemukan Indeks [{i}]: {devices[i].name}");
 
-    // Jika Logitech tidak ketemu, cari yang BUKAN Lenovo
-    if (string.IsNullOrEmpty(selectedCameraName)) {
-        foreach (var dev in devices) {
-            if (!dev.name.ToLower().Contains("lenovo") && !dev.name.ToLower().Contains("easycamera")) {
-                selectedCameraName = dev.name;
-                break;
-            }
-        }
-    }
+    //     // Cari yang namanya mengandung "Logitech" (tidak peduli huruf besar/kecil)
+    //     if (devices[i].name.ToLower().Contains("logitech")) {
+    //         selectedCameraName = devices[i].name;
+    //         Debug.Log("Kamera Logitech Ditemukan! Menggunakan: " + selectedCameraName);
+    //         break; 
+    //     }
+    // }
 
-    // Eksekusi Kamera
-    if (!string.IsNullOrEmpty(selectedCameraName)) {
-        webcamTexture = new WebCamTexture(selectedCameraName, IMAGE_SIZE, IMAGE_SIZE);
-    } else {
-        // Fallback terakhir kalau semua gagal
-        webcamTexture = new WebCamTexture(devices[0].name);
-        Debug.LogWarning("Logitech tidak ketemu, terpaksa pakai kamera default.");
-    }
+    // // Jika Logitech tidak ketemu, cari yang BUKAN Lenovo
+    // if (string.IsNullOrEmpty(selectedCameraName)) {
+    //     foreach (var dev in devices) {
+    //         if (!dev.name.ToLower().Contains("lenovo") && !dev.name.ToLower().Contains("easycamera")) {
+    //             selectedCameraName = dev.name;
+    //             break;
+    //         }
+    //     }
+    // }
 
-    if (displayImage != null) displayImage.texture = webcamTexture;
-    webcamTexture.Play();
+    // // Eksekusi Kamera
+    // if (!string.IsNullOrEmpty(selectedCameraName)) {
+    //     webcamTexture = new WebCamTexture(selectedCameraName, IMAGE_SIZE, IMAGE_SIZE);
+    // } else {
+    //     // Fallback terakhir kalau semua gagal
+    //     webcamTexture = new WebCamTexture(devices[0].name);
+    //     Debug.LogWarning("Logitech tidak ketemu, terpaksa pakai kamera default.");
+    // }
+
+    // if (displayImage != null) displayImage.texture = webcamTexture;
+    // webcamTexture.Play();
 
                             // ... (sisanya tetap sama untuk loading model AI)
 
@@ -182,7 +188,18 @@ public class YoloWebcamDemo : MonoBehaviour
             // Tampilkan nama benda di console (opsional)
             // Debug.Log("Terdeteksi: " + box.label);
 
+                                 // TAMBAHKAN KODE INI:
+                // Cari komponen teks di dalam prefab, lalu isi dengan nama label
+                var textComponent = newBox.GetComponentInChildren<TextMeshProUGUI>();
+                if (textComponent != null) {
+                    // Mengisi teks dengan "Nama Benda" + "Skor Akurasi"
+                    textComponent.text = $"{box.label} {(box.conf * 100):0}%";
+        }
+
+
             activeBoxes.Add(newBox);
+
+            
         }
     }
 
