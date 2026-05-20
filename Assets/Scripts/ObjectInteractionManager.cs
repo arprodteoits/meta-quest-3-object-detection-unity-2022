@@ -19,6 +19,16 @@ public class ObjectInteractionManager : MonoBehaviour
     public GameObject triangleShape; // Muncul jika Bottle + Eraser
     public GameObject squareShape;   // Muncul jika Pen + Eraser
 
+
+
+    void Start()
+    {
+        // Otomatis menyembunyikan semua bentuk saat game pertama kali Play
+        if (circleShape != null) circleShape.SetActive(false);
+        if (triangleShape != null) triangleShape.SetActive(false);
+        if (squareShape != null) squareShape.SetActive(false);
+    }
+
     // Fungsi ini dipanggil setiap frame oleh YoloWebcamDemo
     public void UpdateDetections(List<DetectedObject> detections)
     {

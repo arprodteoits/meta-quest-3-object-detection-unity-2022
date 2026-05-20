@@ -41,47 +41,47 @@ public class YoloWebcamDemo : MonoBehaviour
     }
 
     void Start() {
-         webcamTexture = new WebCamTexture();
-        if (displayImage != null) displayImage.texture = webcamTexture;
-        webcamTexture.Play();
+        //  webcamTexture = new WebCamTexture();
+        // if (displayImage != null) displayImage.texture = webcamTexture;
+        // webcamTexture.Play();
 
     // void Start() {
-    //   WebCamDevice[] devices = WebCamTexture.devices;
-    // // string selectedCameraName = "";
+      WebCamDevice[] devices = WebCamTexture.devices;
+      string selectedCameraName = "";
 
-    // Debug.Log("--- Mencari Kamera Eksternal ---");
-    // for (int i = 0; i < devices.Length; i++) {
-    //     Debug.Log($"Ditemukan Indeks [{i}]: {devices[i].name}");
+    Debug.Log("--- Mencari Kamera Eksternal ---");
+    for (int i = 0; i < devices.Length; i++) {
+        Debug.Log($"Ditemukan Indeks [{i}]: {devices[i].name}");
 
-    //     // Cari yang namanya mengandung "Logitech" (tidak peduli huruf besar/kecil)
-    //     if (devices[i].name.ToLower().Contains("logitech")) {
-    //         selectedCameraName = devices[i].name;
-    //         Debug.Log("Kamera Logitech Ditemukan! Menggunakan: " + selectedCameraName);
-    //         break; 
-    //     }
-    // }
+        // Cari yang namanya mengandung "Logitech" (tidak peduli huruf besar/kecil)
+        if (devices[i].name.ToLower().Contains("logitech")) {
+            selectedCameraName = devices[i].name;
+            Debug.Log("Kamera Logitech Ditemukan! Menggunakan: " + selectedCameraName);
+            break; 
+        }
+    }
 
-    // // Jika Logitech tidak ketemu, cari yang BUKAN Lenovo
-    // if (string.IsNullOrEmpty(selectedCameraName)) {
-    //     foreach (var dev in devices) {
-    //         if (!dev.name.ToLower().Contains("lenovo") && !dev.name.ToLower().Contains("easycamera")) {
-    //             selectedCameraName = dev.name;
-    //             break;
-    //         }
-    //     }
-    // }
+    // Jika Logitech tidak ketemu, cari yang BUKAN Lenovo
+    if (string.IsNullOrEmpty(selectedCameraName)) {
+        foreach (var dev in devices) {
+            if (!dev.name.ToLower().Contains("lenovo") && !dev.name.ToLower().Contains("easycamera")) {
+                selectedCameraName = dev.name;
+                break;
+            }
+        }
+    }
 
-    // // Eksekusi Kamera
-    // if (!string.IsNullOrEmpty(selectedCameraName)) {
-    //     webcamTexture = new WebCamTexture(selectedCameraName, IMAGE_SIZE, IMAGE_SIZE);
-    // } else {
-    //     // Fallback terakhir kalau semua gagal
-    //     webcamTexture = new WebCamTexture(devices[0].name);
-    //     Debug.LogWarning("Logitech tidak ketemu, terpaksa pakai kamera default.");
-    // }
+    // Eksekusi Kamera
+    if (!string.IsNullOrEmpty(selectedCameraName)) {
+        webcamTexture = new WebCamTexture(selectedCameraName, IMAGE_SIZE, IMAGE_SIZE);
+    } else {
+        // Fallback terakhir kalau semua gagal
+        webcamTexture = new WebCamTexture(devices[0].name);
+        Debug.LogWarning("Logitech tidak ketemu, terpaksa pakai kamera default.");
+    }
 
-    // if (displayImage != null) displayImage.texture = webcamTexture;
-    // webcamTexture.Play();
+    if (displayImage != null) displayImage.texture = webcamTexture;
+    webcamTexture.Play();
 
                             // ... (sisanya tetap sama untuk loading model AI)
 
