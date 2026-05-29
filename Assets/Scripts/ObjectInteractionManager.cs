@@ -41,55 +41,55 @@ public class ObjectInteractionManager : MonoBehaviour
         if (detections.Count < 2) return;
 
         // 2. Cari benda-benda spesifik di dalam daftar deteksi
-        DetectedObject bottle = default;
+        DetectedObject marker = default;
         DetectedObject pen = default;
-        DetectedObject eraser = default;
+        DetectedObject screwdriver = default;
 
-        bool hasBottle = false, hasPen = false, hasEraser = false;
+        bool hasMarker = false, hasPen = false, hasScrewdriver = false;
 
         foreach (var obj in detections)
         {
-            if (obj.label == "bottle") { bottle = obj; hasBottle = true; }
+            if (obj.label == "marker") { marker = obj; hasMarker = true; }
             else if (obj.label == "pen") { pen = obj; hasPen = true; }
-            else if (obj.label == "eraser") { eraser = obj; hasEraser = true; }
+            else if (obj.label == "screwdriver") { screwdriver = obj; hasScrewdriver = true; }
         }
 
         // 3. --- LOGIKA EUCLIDEAN DISTANCE ---
 
         // Kombinasi A: Bottle & Pen -> Lingkaran
-        if (hasBottle && hasPen)
+        if (hasMarker && hasPen)
         {
             // Vector2.Distance otomatis menggunakan rumus Euclidean Distance: akar( (x2-x1)^2 + (y2-y1)^2 )
-            float distance = Vector2.Distance(bottle.centroid, pen.centroid);
+            float distance = Vector2.Distance(marker.centroid, pen.centroid);
             
             if (distance <= interactionThreshold && circleShape != null)
             {
                 circleShape.SetActive(true);
-                Debug.Log($"Interaksi: Bottle & Pen berdekatan! Jarak: {distance:0.0} px");
+                Debug.Log($"Interaksi: Marker & Pen berdekatan! Jarak: {distance:0.0} px");
             }
         }
 
         // Kombinasi B: Bottle & Eraser -> Segitiga
-        if (hasBottle && hasEraser)
+        if (hasMarker && hasScrewdriver)
         {
-            float distance = Vector2.Distance(bottle.centroid, eraser.centroid);
+            float distance = Vector2.Distance(marker.centroid, screwdriver.centroid);
             
             if (distance <= interactionThreshold && triangleShape != null)
             {
                 triangleShape.SetActive(true);
-                Debug.Log($"Interaksi: Bottle & Eraser berdekatan! Jarak: {distance:0.0} px");
+                Debug.Log($"Interaksi: Marker & Screwdriver berdekatan! Jarak: {distance:0.0} px");
             }
         }
 
-        // Kombinasi C: Pen & Eraser -> Kotak
-        if (hasPen && hasEraser)
+        // Kombinasi C: Pen & Screwdriver -> Kotak
+        if (hasPen && hasScrewdriver)
         {
-            float distance = Vector2.Distance(pen.centroid, eraser.centroid);
+            float distance = Vector2.Distance(pen.centroid, screwdriver.centroid);
             
             if (distance <= interactionThreshold && squareShape != null)
             {
                 squareShape.SetActive(true);
-                Debug.Log($"Interaksi: Pen & Eraser berdekatan! Jarak: {distance:0.0} px");
+                Debug.Log($"Interaksi: Pen & Screwdriver berdekatan! Jarak: {distance:0.0} px");
             }
         }
     }

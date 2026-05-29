@@ -13,7 +13,7 @@ public class YoloWebcamDemo : MonoBehaviour
     private Tensor<float> inputTensor;
 
     // --- DAFTAR KELAS SESUAI ROBOFLOW ---
-    private string[] classNames = { "bottle", "eraser", "pen" }; 
+    private string[] classNames = { "marker", "pen", "screwdriver" }; 
 
     [Header("Kamera & UI")]
     public int webcamIndex = 1; // 0 biasanya internal, 1 biasanya eksternal
