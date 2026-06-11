@@ -635,7 +635,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 705038f41f3878b4ab8880a1be29429e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  modelAsset: {fileID: 5022602860645237092, guid: 5c0ae85a80a93df4496ef518ab06ed7a,
+  modelAsset: {fileID: 5022602860645237092, guid: 4ffb4c7e3b67a6f4995824e747b5f9ea,
     type: 3}
   webcamIndex: 1
   displayImage: {fileID: 329769389}

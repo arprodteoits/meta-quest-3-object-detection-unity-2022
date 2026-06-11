@@ -13,7 +13,7 @@ public class YoloWebcamDemo : MonoBehaviour
     private Tensor<float> inputTensor;
 
     // --- DAFTAR KELAS SESUAI ROBOFLOW ---
-    private string[] classNames = { "marker", "pen", "screwdriver" }; 
+    private string[] classNames = { "bottle", "eraser", "pen" }; 
 
     [Header("Kamera & UI")]
     public int webcamIndex = 1; // 0 biasanya internal, 1 biasanya eksternal
@@ -151,12 +151,22 @@ public class YoloWebcamDemo : MonoBehaviour
         }
 
         // 4. Kirim data ke Interaction Manager untuk hitung jarak
+        // 4. Kirim data ke Interaction Manager untuk hitung jarak
         if (interactionManager != null) {
+            // Ambil ukuran layar UI kamera saat ini
+            Vector2 uiSize = displayImage.rectTransform.rect.size; 
             List<ObjectInteractionManager.DetectedObject> interactionList = new List<ObjectInteractionManager.DetectedObject>();
+            
             foreach (var b in finalBoxes) {
+                // Terjemahkan koordinat YOLO (640) menjadi koordinat Layar UI
+                float xNorm = b.cx / IMAGE_SIZE;
+                float yNorm = b.cy / IMAGE_SIZE;
+                float uiX = (xNorm * uiSize.x) - (uiSize.x / 2f);
+                float uiY = (uiSize.y / 2f) - (yNorm * uiSize.y); 
+
                 interactionList.Add(new ObjectInteractionManager.DetectedObject {
                     label = b.label,
-                    centroid = new Vector2(b.cx, b.cy)
+                    centroid = new Vector2(uiX, uiY) // <- Sekarang titik tengah sesuai dengan layar
                 });
             }
             interactionManager.UpdateDetections(interactionList);
