@@ -41,47 +41,25 @@ public class YoloWebcamDemo : MonoBehaviour
     }
 
     void Start() {
-        //  webcamTexture = new WebCamTexture();
-        // if (displayImage != null) displayImage.texture = webcamTexture;
-        // webcamTexture.Play();
+// --- KODE BARU UNTUK META QUEST 3 / ANDROID ---
+        WebCamDevice[] devices = WebCamTexture.devices;
 
-    // void Start() {
-      WebCamDevice[] devices = WebCamTexture.devices;
-      string selectedCameraName = "";
+        if (devices.Length == 0) {
+            Debug.LogError("Kamera tidak ditemukan! Pastikan Permission Camera sudah dicentang di Project Settings.");
+            // Jangan lupa centang 'Camera Usage Description' di setingan Player -> Android
+        } else {
+            // Meta Quest selalu meletakkan kamera utamanya di index 0
+            string selectedCameraName = devices[0].name;
+            Debug.Log("Menggunakan Kamera Quest: " + selectedCameraName);
 
-    Debug.Log("--- Mencari Kamera Eksternal ---");
-    for (int i = 0; i < devices.Length; i++) {
-        Debug.Log($"Ditemukan Indeks [{i}]: {devices[i].name}");
+            // Inisialisasi WebCamTexture dengan ukuran yang diminta YOLO (640x640)
+            webcamTexture = new WebCamTexture(selectedCameraName, IMAGE_SIZE, IMAGE_SIZE);
 
-        // Cari yang namanya mengandung "Logitech" (tidak peduli huruf besar/kecil)
-        if (devices[i].name.ToLower().Contains("logitech")) {
-            selectedCameraName = devices[i].name;
-            Debug.Log("Kamera Logitech Ditemukan! Menggunakan: " + selectedCameraName);
-            break; 
-        }
-    }
-
-    // Jika Logitech tidak ketemu, cari yang BUKAN Lenovo
-    if (string.IsNullOrEmpty(selectedCameraName)) {
-        foreach (var dev in devices) {
-            if (!dev.name.ToLower().Contains("lenovo") && !dev.name.ToLower().Contains("easycamera")) {
-                selectedCameraName = dev.name;
-                break;
+            if (displayImage != null) {
+                displayImage.texture = webcamTexture;
             }
+            webcamTexture.Play();
         }
-    }
-
-    // Eksekusi Kamera
-    if (!string.IsNullOrEmpty(selectedCameraName)) {
-        webcamTexture = new WebCamTexture(selectedCameraName, IMAGE_SIZE, IMAGE_SIZE);
-    } else {
-        // Fallback terakhir kalau semua gagal
-        webcamTexture = new WebCamTexture(devices[0].name);
-        Debug.LogWarning("Logitech tidak ketemu, terpaksa pakai kamera default.");
-    }
-
-    if (displayImage != null) displayImage.texture = webcamTexture;
-    webcamTexture.Play();
 
                             // ... (sisanya tetap sama untuk loading model AI)
 

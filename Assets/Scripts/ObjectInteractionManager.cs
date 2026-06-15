@@ -59,12 +59,16 @@ public class ObjectInteractionManager : MonoBehaviour
         // Kombinasi A: Bottle & Eraser -> Lingkaran
         if (hasBottle && hasEraser)
         {
-            // Vector2.Distance otomatis menggunakan rumus Euclidean Distance: akar( (x2-x1)^2 + (y2-y1)^2 )
             float distance = Vector2.Distance(bottle.centroid, eraser.centroid);
             
             if (distance <= interactionThreshold && circleShape != null)
             {
                 circleShape.SetActive(true);
+                
+                // --- TAMBAHKAN DUA BARIS INI ---
+                Vector2 midPoint = (bottle.centroid + eraser.centroid) / 2f;
+                circleShape.GetComponent<RectTransform>().anchoredPosition = midPoint;
+                
                 Debug.Log($"Interaksi: Bottle & Eraser berdekatan! Jarak: {distance:0.0} px");
             }
         }
@@ -77,6 +81,11 @@ public class ObjectInteractionManager : MonoBehaviour
             if (distance <= interactionThreshold && triangleShape != null)
             {
                 triangleShape.SetActive(true);
+                
+                // --- TAMBAHKAN DUA BARIS INI ---
+                Vector2 midPoint = (bottle.centroid + pen.centroid) / 2f;
+                triangleShape.GetComponent<RectTransform>().anchoredPosition = midPoint;
+
                 Debug.Log($"Interaksi: Bottle & Pen berdekatan! Jarak: {distance:0.0} px");
             }
         }
@@ -89,6 +98,11 @@ public class ObjectInteractionManager : MonoBehaviour
             if (distance <= interactionThreshold && squareShape != null)
             {
                 squareShape.SetActive(true);
+                
+                // --- TAMBAHKAN DUA BARIS INI ---
+                Vector2 midPoint = (eraser.centroid + pen.centroid) / 2f;
+                squareShape.GetComponent<RectTransform>().anchoredPosition = midPoint;
+
                 Debug.Log($"Interaksi: Eraser & Pen berdekatan! Jarak: {distance:0.0} px");
             }
         }
