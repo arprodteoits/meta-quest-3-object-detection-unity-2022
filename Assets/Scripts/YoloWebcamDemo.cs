@@ -1,7 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using Unity.Sentis;
+
 using UnityEngine.UI;
 using TMPro;
 using UnityEngine.Android; // For runtime permissions
@@ -9,10 +9,10 @@ using UnityEngine.Android; // For runtime permissions
 public class YoloWebcamDemo : MonoBehaviour
 {
     [Header("Sentis AI")]
-    public ModelAsset modelAsset;
-    private Model runtimeModel;
-    private Worker worker;
-    private Tensor<float> inputTensor;
+    public Unity.InferenceEngine.ModelAsset modelAsset;
+    private Unity.InferenceEngine.Model runtimeModel;
+    private Unity.InferenceEngine.Worker worker;
+    private Unity.InferenceEngine.Tensor<float> inputTensor;
 
     private string[] classNames = { "bottle", "eraser", "pen" };
 
@@ -54,10 +54,10 @@ public class YoloWebcamDemo : MonoBehaviour
         // Load AI Model
         if (modelAsset != null)
         {
-            runtimeModel = ModelLoader.Load(modelAsset);
+            runtimeModel = Unity.InferenceEngine.ModelLoader.Load(modelAsset);
             // ✅ Gunakan CPU dulu untuk keamanan, bisa dicoba GPUCommandBuffer nanti
-            worker = new Worker(runtimeModel, BackendType.CPU);
-            inputTensor = new Tensor<float>(new TensorShape(1, 3, IMAGE_SIZE, IMAGE_SIZE));
+            worker = new Unity.InferenceEngine.Worker(runtimeModel, Unity.InferenceEngine.BackendType.CPU);
+            inputTensor = new Unity.InferenceEngine.Tensor<float>(new Unity.InferenceEngine.TensorShape(1, 3, IMAGE_SIZE, IMAGE_SIZE));
         }
     }
 
@@ -127,14 +127,14 @@ public class YoloWebcamDemo : MonoBehaviour
         Graphics.Blit(activeWebcam, cameraRenderTexture);
 
         // ✅ Konversi RenderTexture ke Tensor untuk YOLO
-        TextureTransform transform = new TextureTransform()
+        Unity.InferenceEngine.TextureTransform transform = new Unity.InferenceEngine.TextureTransform()
             .SetDimensions(IMAGE_SIZE, IMAGE_SIZE)
-            .SetTensorLayout(TensorLayout.NCHW);
+            .SetTensorLayout(Unity.InferenceEngine.TensorLayout.NCHW);
 
-        TextureConverter.ToTensor(cameraRenderTexture, inputTensor, transform);
+        Unity.InferenceEngine.TextureConverter.ToTensor(cameraRenderTexture, inputTensor, transform);
         worker.Schedule(inputTensor);
 
-        Tensor<float> outputTensor = worker.PeekOutput() as Tensor<float>;
+        Unity.InferenceEngine.Tensor<float> outputTensor = worker.PeekOutput() as Unity.InferenceEngine.Tensor<float>;
         if (outputTensor != null)
         {
             float[] data = outputTensor.DownloadToArray();

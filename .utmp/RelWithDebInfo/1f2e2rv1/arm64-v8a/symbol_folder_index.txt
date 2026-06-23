@@ -1,0 +1,1 @@
+D:\UnityProject\meta-quest-3-object-detection-unity-2022\Library\Bee\Android\Prj\IL2CPP\Gradle\unityLibrary\build\intermediates\cxx\RelWithDebInfo\1f2e2rv1\obj\arm64-v8a
