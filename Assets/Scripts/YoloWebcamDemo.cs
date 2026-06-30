@@ -1,10 +1,10 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-
+       // ← MUST exist
 using UnityEngine.UI;
 using TMPro;
-using UnityEngine.Android; // For runtime permissions
+using UnityEngine.Android;
 
 public class YoloWebcamDemo : MonoBehaviour
 {
@@ -38,78 +38,103 @@ public class YoloWebcamDemo : MonoBehaviour
         public string label;
     }
 
-    void Start()
-    {
-        // ✅ Step 1: Minta izin kamera di runtime (wajib untuk Android/Quest)
-        if (!Permission.HasUserAuthorizedPermission(Permission.Camera))
-        {
-            Permission.RequestUserPermission(Permission.Camera);
-            StartCoroutine(WaitForPermissionThenInit());
-        }
-        else
-        {
-            InitCamera();
-        }
+void Start()
+{
+    Debug.Log("[YOLO-DEBUG] Start() called - Sentis 2.5.0");
 
-        // Load AI Model
-        if (modelAsset != null)
-        {
-            runtimeModel = Unity.InferenceEngine.ModelLoader.Load(modelAsset);
-            // ✅ Gunakan CPU dulu untuk keamanan, bisa dicoba GPUCommandBuffer nanti
-            worker = new Unity.InferenceEngine.Worker(runtimeModel, Unity.InferenceEngine.BackendType.CPU);
-            inputTensor = new Unity.InferenceEngine.Tensor<float>(new Unity.InferenceEngine.TensorShape(1, 3, IMAGE_SIZE, IMAGE_SIZE));
-        }
+    if (modelAsset == null) {
+        Debug.LogError("[YOLO-DEBUG] modelAsset is NULL!");
+        return;
     }
 
-    IEnumerator WaitForPermissionThenInit()
+    // ✅ Sentis 2.5.0 correct API
+    runtimeModel = Unity.InferenceEngine.ModelLoader.Load(modelAsset);
+    worker = new Unity.InferenceEngine.Worker(runtimeModel, Unity.InferenceEngine.BackendType.CPU);
+    inputTensor = new Unity.InferenceEngine.Tensor<float>(new Unity.InferenceEngine.TensorShape(1, 3, IMAGE_SIZE, IMAGE_SIZE));
+    
+    Debug.Log("[YOLO-DEBUG] Model loaded OK - Sentis 2.5.0");
+
+    // Camera permission
+    if (!Permission.HasUserAuthorizedPermission(Permission.Camera))
     {
-        // Tunggu sampai user memberi izin
-        yield return new WaitUntil(() =>
-            Permission.HasUserAuthorizedPermission(Permission.Camera));
+        Permission.RequestUserPermission(Permission.Camera);
+        StartCoroutine(WaitForPermissionThenInit());
+    }
+    else
+    {
         InitCamera();
     }
+}
 
-    void InitCamera()
+IEnumerator WaitForPermissionThenInit()
+{
+    Debug.Log("[YOLO-DEBUG] Waiting for permission...");
+    float timeout = 10f;
+    float elapsed = 0f;
+    
+    while (!Permission.HasUserAuthorizedPermission(Permission.Camera))
     {
-        WebCamDevice[] devices = WebCamTexture.devices;
-
-        if (devices.Length == 0)
-        {
-            Debug.LogError("[Quest3] Tidak ada kamera ditemukan setelah permission diberikan.");
-            return;
+        elapsed += Time.deltaTime;
+        if (elapsed > timeout) {
+            Debug.LogError("[YOLO-DEBUG] Permission timeout! User may have denied camera.");
+            yield break;
         }
+        yield return null;
+    }
+    
+    Debug.Log("[YOLO-DEBUG] Permission granted after " + elapsed + "s");
+    InitCamera();
+}
 
-        // ✅ Quest 3: Selalu gunakan kamera index 0
-        string camName = devices[0].name;
-        Debug.Log("[Quest3] Kamera ditemukan: " + camName);
+   void InitCamera()
+{
+    Debug.Log("[YOLO-DEBUG] InitCamera() called");
+    
+    WebCamDevice[] devices = WebCamTexture.devices;
+    Debug.Log("[YOLO-DEBUG] Camera devices found: " + devices.Length);
 
-        // ✅ Gunakan resolusi lebih rendah dulu (Quest 3 lebih stabil)
-        // Quest 3 mendukung: 320x240, 640x480, 1280x720
-        WebCamTexture webcamTexture = new WebCamTexture(camName, 640, 480, 30);
+    for (int i = 0; i < devices.Length; i++)
+        Debug.Log($"[YOLO-DEBUG] Device[{i}]: {devices[i].name}");
 
-        // ✅ Buat RenderTexture untuk resize ke 640x640 untuk YOLO
-        cameraRenderTexture = new RenderTexture(IMAGE_SIZE, IMAGE_SIZE, 0, RenderTextureFormat.ARGB32);
-        readbackTexture = new Texture2D(IMAGE_SIZE, IMAGE_SIZE, TextureFormat.RGB24, false);
-
-        if (displayImage != null)
-        {
-            displayImage.texture = webcamTexture; // Tampilkan feed asli
-        }
-
-        webcamTexture.Play();
-        StartCoroutine(WaitForCameraStart(webcamTexture));
+    if (devices.Length == 0)
+    {
+        Debug.LogError("[YOLO-DEBUG] NO CAMERAS FOUND! Permission may be denied.");
+        return;
     }
 
-    IEnumerator WaitForCameraStart(WebCamTexture webcam)
-    {
-        // Tunggu sampai kamera benar-benar aktif (penting di Quest 3!)
-        yield return new WaitUntil(() => webcam.width > 16);
-        Debug.Log($"[Quest3] Kamera aktif: {webcam.width}x{webcam.height}");
-        cameraReady = true;
+    string camName = devices[0].name;
+    Debug.Log("[YOLO-DEBUG] Using camera: " + camName);
 
-        // Simpan referensi webcam untuk dipakai di Update
-        activeWebcam = webcam;
+    activeWebcam = new WebCamTexture(camName, 640, 480, 30);
+    cameraRenderTexture = new RenderTexture(IMAGE_SIZE, IMAGE_SIZE, 0, RenderTextureFormat.ARGB32);
+
+    if (displayImage != null)
+        displayImage.texture = activeWebcam;
+
+    activeWebcam.Play();
+    Debug.Log("[YOLO-DEBUG] webcam.Play() called");
+    StartCoroutine(WaitForCameraStart());
+}
+
+  IEnumerator WaitForCameraStart()
+{
+    Debug.Log("[YOLO-DEBUG] Waiting for camera to start...");
+    float timeout = 10f;
+    float elapsed = 0f;
+    
+    while (activeWebcam.width <= 16)
+    {
+        elapsed += Time.deltaTime;
+        if (elapsed > timeout) {
+            Debug.LogError("[YOLO-DEBUG] Camera start timeout! width=" + activeWebcam.width);
+            yield break;
+        }
+        yield return null;
     }
+    
+    Debug.Log($"[YOLO-DEBUG] Camera started! Size: {activeWebcam.width}x{activeWebcam.height}");
+    cameraReady = true;
+}
 
     private WebCamTexture activeWebcam;
 
