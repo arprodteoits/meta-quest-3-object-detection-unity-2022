@@ -1,8 +1,9 @@
 using System.Collections.Generic;
 using UnityEngine;
- 
 using UnityEngine.UI;
 using TMPro;
+using System.Diagnostics; // [BARU] Tambahkan ini untuk menggunakan Stopwatch
+using Debug = UnityEngine.Debug; // [BARU] Menghindari konflik antara System.Diagnostics.Debug dan UnityEngine.Debug
 
 public class YoloWebcamDemo : MonoBehaviour
 {
@@ -21,6 +22,12 @@ public class YoloWebcamDemo : MonoBehaviour
     public GameObject boxPrefab; 
     public ObjectInteractionManager interactionManager; // Hubungkan ke Manager Jarak
     
+    // [BARU] Header dan variabel untuk UI Statistik
+    [Header("Statistik Performa")]
+    public TextMeshProUGUI statsText; // UI Text untuk menampilkan FPS & Inference Time
+    private float deltaTime = 0.0f; // Untuk kalkulasi FPS
+    private Stopwatch inferenceStopwatch = new Stopwatch(); // Untuk kalkulasi waktu AI
+
     private WebCamTexture webcamTexture;
     private List<GameObject> activeBoxes = new List<GameObject>(); 
 
@@ -41,49 +48,42 @@ public class YoloWebcamDemo : MonoBehaviour
     }
 
     void Start() {
-        //  webcamTexture = new WebCamTexture();
-        // if (displayImage != null) displayImage.texture = webcamTexture;
-        // webcamTexture.Play();
+        WebCamDevice[] devices = WebCamTexture.devices;
+        string selectedCameraName = "";
 
-    // void Start() {
-      WebCamDevice[] devices = WebCamTexture.devices;
-      string selectedCameraName = "";
+        Debug.Log("--- Mencari Kamera Eksternal ---");
+        for (int i = 0; i < devices.Length; i++) {
+            Debug.Log($"Ditemukan Indeks [{i}]: {devices[i].name}");
 
-    Debug.Log("--- Mencari Kamera Eksternal ---");
-    for (int i = 0; i < devices.Length; i++) {
-        Debug.Log($"Ditemukan Indeks [{i}]: {devices[i].name}");
-
-        // Cari yang namanya mengandung "Logitech" (tidak peduli huruf besar/kecil)
-        if (devices[i].name.ToLower().Contains("logitech")) {
-            selectedCameraName = devices[i].name;
-            Debug.Log("Kamera Logitech Ditemukan! Menggunakan: " + selectedCameraName);
-            break; 
-        }
-    }
-
-    // Jika Logitech tidak ketemu, cari yang BUKAN Lenovo
-    if (string.IsNullOrEmpty(selectedCameraName)) {
-        foreach (var dev in devices) {
-            if (!dev.name.ToLower().Contains("lenovo") && !dev.name.ToLower().Contains("easycamera")) {
-                selectedCameraName = dev.name;
-                break;
+            // Cari yang namanya mengandung "Logitech" (tidak peduli huruf besar/kecil)
+            if (devices[i].name.ToLower().Contains("logitech")) {
+                selectedCameraName = devices[i].name;
+                Debug.Log("Kamera Logitech Ditemukan! Menggunakan: " + selectedCameraName);
+                break; 
             }
         }
-    }
 
-    // Eksekusi Kamera
-    if (!string.IsNullOrEmpty(selectedCameraName)) {
-        webcamTexture = new WebCamTexture(selectedCameraName, IMAGE_SIZE, IMAGE_SIZE);
-    } else {
-        // Fallback terakhir kalau semua gagal
-        webcamTexture = new WebCamTexture(devices[0].name);
-        Debug.LogWarning("Logitech tidak ketemu, terpaksa pakai kamera default.");
-    }
+        // Jika Logitech tidak ketemu, cari yang BUKAN Lenovo
+        if (string.IsNullOrEmpty(selectedCameraName)) {
+            foreach (var dev in devices) {
+                if (!dev.name.ToLower().Contains("lenovo") && !dev.name.ToLower().Contains("easycamera")) {
+                    selectedCameraName = dev.name;
+                    break;
+                }
+            }
+        }
 
-    if (displayImage != null) displayImage.texture = webcamTexture;
-    webcamTexture.Play();
+        // Eksekusi Kamera
+        if (!string.IsNullOrEmpty(selectedCameraName)) {
+            webcamTexture = new WebCamTexture(selectedCameraName, IMAGE_SIZE, IMAGE_SIZE);
+        } else {
+            // Fallback terakhir kalau semua gagal
+            webcamTexture = new WebCamTexture(devices[0].name);
+            Debug.LogWarning("Logitech tidak ketemu, terpaksa pakai kamera default.");
+        }
 
-                            // ... (sisanya tetap sama untuk loading model AI)
+        if (displayImage != null) displayImage.texture = webcamTexture;
+        webcamTexture.Play();
 
         if (modelAsset != null) {
             runtimeModel = Unity.Sentis.ModelLoader.Load(modelAsset);
@@ -93,10 +93,18 @@ public class YoloWebcamDemo : MonoBehaviour
     }
 
     void Update() {
-        if (webcamTexture != null && webcamTexture.didUpdateThisFrame) ExecuteInference();
+        // [BARU] Hitung deltaTime untuk FPS setiap frame
+        deltaTime += (Time.unscaledDeltaTime - deltaTime) * 0.1f;
+
+        if (webcamTexture != null && webcamTexture.didUpdateThisFrame) {
+            ExecuteInference();
+        }
     }
 
     void ExecuteInference() {
+        // [BARU] Mulai menghitung waktu inferensi
+        inferenceStopwatch.Restart(); 
+
         Unity.Sentis.TextureTransform transform = new Unity.Sentis.TextureTransform().SetDimensions(IMAGE_SIZE, IMAGE_SIZE).SetTensorLayout(Unity.Sentis.TensorLayout.NCHW);
         Unity.Sentis.TextureConverter.ToTensor(webcamTexture, inputTensor, transform);
         worker.Schedule(inputTensor);
@@ -104,6 +112,19 @@ public class YoloWebcamDemo : MonoBehaviour
         Unity.Sentis.Tensor<float> outputTensor = worker.PeekOutput() as Unity.Sentis.Tensor<float>;
         if (outputTensor != null) {
             float[] data = outputTensor.DownloadToArray();
+            
+            // [BARU] Hentikan stopwatch setelah data tensor selesai diproses
+            inferenceStopwatch.Stop(); 
+            float inferenceTimeMs = inferenceStopwatch.ElapsedMilliseconds;
+
+            // [BARU] Kalkulasi FPS
+            float currentFPS = 1.0f / deltaTime;
+
+            // [BARU] Tampilkan ke UI jika statsText sudah di-assign
+            if (statsText != null) {
+                statsText.text = $"FPS: {Mathf.RoundToInt(currentFPS)} | Inference: {inferenceTimeMs} ms";
+            }
+
             ParseYOLOOutput(data);
         }
     }
@@ -151,7 +172,6 @@ public class YoloWebcamDemo : MonoBehaviour
         }
 
         // 4. Kirim data ke Interaction Manager untuk hitung jarak
-        // 4. Kirim data ke Interaction Manager untuk hitung jarak
         if (interactionManager != null) {
             // Ambil ukuran layar UI kamera saat ini
             Vector2 uiSize = displayImage.rectTransform.rect.size; 
@@ -175,7 +195,6 @@ public class YoloWebcamDemo : MonoBehaviour
         DrawBoxes(finalBoxes);
     }
 
-    // --- Fungsi Helper (DrawBoxes, CalculateIoU, OnDisable) tetap sama seperti sebelumnya ---
     void DrawBoxes(List<BoundingBox> boxesToDraw) {
         foreach (var boxObj in activeBoxes) Destroy(boxObj);
         activeBoxes.Clear();
@@ -195,21 +214,14 @@ public class YoloWebcamDemo : MonoBehaviour
             rt.anchoredPosition = new Vector2(uiX, uiY);
             rt.sizeDelta = new Vector2((box.w / IMAGE_SIZE) * uiSize.x, (box.h / IMAGE_SIZE) * uiSize.y);
             
-            // Tampilkan nama benda di console (opsional)
-            // Debug.Log("Terdeteksi: " + box.label);
-
-                                 // TAMBAHKAN KODE INI:
-                // Cari komponen teks di dalam prefab, lalu isi dengan nama label
-                var textComponent = newBox.GetComponentInChildren<TextMeshProUGUI>();
-                if (textComponent != null) {
-                    // Mengisi teks dengan "Nama Benda" + "Skor Akurasi"
-                    textComponent.text = $"{box.label} {(box.conf * 100):0}%";
-        }
-
+            // Cari komponen teks di dalam prefab, lalu isi dengan nama label
+            var textComponent = newBox.GetComponentInChildren<TextMeshProUGUI>();
+            if (textComponent != null) {
+                // Mengisi teks dengan "Nama Benda" + "Skor Akurasi"
+                textComponent.text = $"{box.label} {(box.conf * 100):0}%";
+            }
 
             activeBoxes.Add(newBox);
-
-            
         }
     }
 
