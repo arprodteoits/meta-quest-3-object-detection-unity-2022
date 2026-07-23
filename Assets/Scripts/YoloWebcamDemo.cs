@@ -1,16 +1,16 @@
 using System.Collections.Generic;
 using UnityEngine;
-using Unity.Sentis; 
+ 
 using UnityEngine.UI;
 using TMPro;
 
 public class YoloWebcamDemo : MonoBehaviour
 {
     [Header("Sentis AI")]
-    public ModelAsset modelAsset;
-    private Model runtimeModel;
-    private Worker worker; 
-    private Tensor<float> inputTensor;
+    public Unity.Sentis.ModelAsset modelAsset;
+    private Unity.Sentis.Model runtimeModel;
+    private Unity.Sentis.Worker worker; 
+    private Unity.Sentis.Tensor<float> inputTensor;
 
     // --- DAFTAR KELAS SESUAI ROBOFLOW ---
     private string[] classNames = { "bottle", "eraser", "pen" }; 
@@ -86,9 +86,9 @@ public class YoloWebcamDemo : MonoBehaviour
                             // ... (sisanya tetap sama untuk loading model AI)
 
         if (modelAsset != null) {
-            runtimeModel = ModelLoader.Load(modelAsset);
-            worker = new Worker(runtimeModel, BackendType.GPUCompute);
-            inputTensor = new Tensor<float>(new TensorShape(1, 3, IMAGE_SIZE, IMAGE_SIZE));
+            runtimeModel = Unity.Sentis.ModelLoader.Load(modelAsset);
+            worker = new Unity.Sentis.Worker(runtimeModel, Unity.Sentis.BackendType.GPUCompute);
+            inputTensor = new Unity.Sentis.Tensor<float>(new Unity.Sentis.TensorShape(1, 3, IMAGE_SIZE, IMAGE_SIZE));
         }
     }
 
@@ -97,11 +97,11 @@ public class YoloWebcamDemo : MonoBehaviour
     }
 
     void ExecuteInference() {
-        TextureTransform transform = new TextureTransform().SetDimensions(IMAGE_SIZE, IMAGE_SIZE).SetTensorLayout(TensorLayout.NCHW);
-        TextureConverter.ToTensor(webcamTexture, inputTensor, transform);
+        Unity.Sentis.TextureTransform transform = new Unity.Sentis.TextureTransform().SetDimensions(IMAGE_SIZE, IMAGE_SIZE).SetTensorLayout(Unity.Sentis.TensorLayout.NCHW);
+        Unity.Sentis.TextureConverter.ToTensor(webcamTexture, inputTensor, transform);
         worker.Schedule(inputTensor);
 
-        Tensor<float> outputTensor = worker.PeekOutput() as Tensor<float>;
+        Unity.Sentis.Tensor<float> outputTensor = worker.PeekOutput() as Unity.Sentis.Tensor<float>;
         if (outputTensor != null) {
             float[] data = outputTensor.DownloadToArray();
             ParseYOLOOutput(data);
