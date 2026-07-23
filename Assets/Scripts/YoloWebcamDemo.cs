@@ -39,8 +39,8 @@ public class YoloWebcamDemo : MonoBehaviour
     [Range(0.0f, 1.0f)]
     public float confidenceThreshold = 0.35f;
 
-    private const int NUM_PROPOSALS = 8400; 
-    private const int IMAGE_SIZE = 640;
+    private const int NUM_PROPOSALS = 3549; 
+    private const int IMAGE_SIZE = 416;
 
     public struct BoundingBox {
         public float cx, cy, w, h, conf;
@@ -130,6 +130,9 @@ public class YoloWebcamDemo : MonoBehaviour
     }
 
     void ParseYOLOOutput(float[] data) {
+
+        // TAMBAHKAN BARIS INI UNTUK MENGECEK PANJANG ARRAY ASLI
+        Debug.Log("Panjang array data dari AI: " + data.Length);
         List<BoundingBox> boxes = new List<BoundingBox>();
         int numClasses = classNames.Length;
 
