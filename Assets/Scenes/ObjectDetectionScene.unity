@@ -262,8 +262,8 @@ MonoBehaviour:
   m_fontMaterials: []
   m_fontColor32:
     serializedVersion: 2
-    rgba: 4280216634
-  m_fontColor: {r: 0.22729605, g: 0.9245283, b: 0.11774653, a: 1}
+    rgba: 4294126083
+  m_fontColor: {r: 0.013483422, g: 0.16475858, b: 0.9528302, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
   m_fontColorGradient:
@@ -772,7 +772,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 705038f41f3878b4ab8880a1be29429e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  modelAsset: {fileID: 5022602860645237092, guid: 5125c68a4b2058c489e445ce62030f8b,
+  modelAsset: {fileID: 5022602860645237092, guid: d6f0aadd9b34d3448a37836829cc2b20,
     type: 3}
   webcamIndex: 1
   displayImage: {fileID: 329769389}

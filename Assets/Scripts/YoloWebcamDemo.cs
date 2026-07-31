@@ -4,6 +4,8 @@ using UnityEngine.UI;
 using TMPro;
 using System.Diagnostics; // [BARU] Tambahkan ini untuk menggunakan Stopwatch
 using Debug = UnityEngine.Debug; // [BARU] Menghindari konflik antara System.Diagnostics.Debug dan UnityEngine.Debug
+using System.IO; // [BARU - LOGGING] Tambahkan ini untuk membaca/menulis file CSV
+using System;    // [BARU - LOGGING] Tambahkan ini untuk fungsi waktu (DateTime)
 
 public class YoloWebcamDemo : MonoBehaviour
 {
@@ -42,12 +44,25 @@ public class YoloWebcamDemo : MonoBehaviour
     private const int NUM_PROPOSALS = 3549; 
     private const int IMAGE_SIZE = 416;
 
+    // [BARU - LOGGING] Variabel untuk menyimpan path file CSV
+    private string logFilePath;
+
     public struct BoundingBox {
         public float cx, cy, w, h, conf;
         public string label; // Tambahkan label untuk membedakan benda
     }
 
     void Start() {
+
+        // [BARU - LOGGING] 1. Buat file CSV saat aplikasi dimulai
+        // Menggunakan Application.persistentDataPath agar aman di Android (Meta Quest) maupun PC
+        string timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
+        logFilePath = Path.Combine(Application.persistentDataPath, $"Log_Inferensi_{timestamp}.csv");
+        
+        // [BARU - LOGGING] 2. Tulis baris pertama sebagai Header
+        string header = "Waktu,Objek,Confidence,Posisi_X,Posisi_Y,Inference_Time_ms\n";
+        File.WriteAllText(logFilePath, header);
+        Debug.Log("File Log CSV berhasil dibuat di: " + logFilePath);
         WebCamDevice[] devices = WebCamTexture.devices;
         string selectedCameraName = "";
 
@@ -125,11 +140,29 @@ public class YoloWebcamDemo : MonoBehaviour
                 statsText.text = $"FPS: {Mathf.RoundToInt(currentFPS)} | Inference: {inferenceTimeMs} ms";
             }
 
-            ParseYOLOOutput(data);
+            ParseYOLOOutput(data, inferenceTimeMs); // BARU Kirim juga waktu inferensi ke fungsi parsing
         }
+
+                // [NOMOR 3] Pasang Debug.Log ini untuk melihat bentuk asli tensor di Console Unity
+                Debug.Log("Tensor Shape Rank: " + outputTensor.shape.rank + 
+              " | Dim 0 (Batch): " + outputTensor.shape[0] + 
+              " | Dim 1 (Channels/Atribut): " + outputTensor.shape[1] + 
+              " | Dim 2 (Proposals/Anchors): " + outputTensor.shape[2]);
+
+              // [NOMOR 2] Gunakan nilai dimensi ini secara dinamis untuk perulangan (looping)
+                int channels = outputTensor.shape[1]; 
+                int proposals = outputTensor.shape[2]; 
+
+              // Contoh perulangan menggunakan variabel dinamis agar bebas dari Out of Bounds
+                for (int i = 0; i < proposals; i++)
+                {
+                    // Logika pembacaan koordinat dan kelas bounding box di sini...
+                }
+
+
     }
 
-    void ParseYOLOOutput(float[] data) {
+    void ParseYOLOOutput(float[] data, float inferenceTimeMs) {
 
         // TAMBAHKAN BARIS INI UNTUK MENGECEK PANJANG ARRAY ASLI
         Debug.Log("Panjang array data dari AI: " + data.Length);
@@ -172,6 +205,19 @@ public class YoloWebcamDemo : MonoBehaviour
                 if (CalculateIoU(box, fb) > 0.45f) { overlap = true; break; }
             }
             if (!overlap) finalBoxes.Add(box);
+        }
+        // [BARU - LOGGING] 3. Ekstrak data finalBoxes ke CSV
+        if (finalBoxes.Count > 0) {
+            string csvData = "";
+            string currentTime = DateTime.Now.ToString("HH:mm:ss.fff"); // Format waktu dengan milidetik
+            
+            foreach (var b in finalBoxes) {
+                // Tulis baris baru menggunakan parameter Append
+                csvData += $"{currentTime},{b.label},{b.conf.ToString("F3")},{b.cx.ToString("F2")},{b.cy.ToString("F2")},{inferenceTimeMs}\n";
+            }
+            
+            // Simpan data ke dalam file
+            File.AppendAllText(logFilePath, csvData);
         }
 
         // 4. Kirim data ke Interaction Manager untuk hitung jarak
