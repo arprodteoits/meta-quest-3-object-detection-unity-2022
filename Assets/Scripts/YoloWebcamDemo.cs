@@ -16,7 +16,7 @@ public class YoloWebcamDemo : MonoBehaviour
     private Unity.Sentis.Tensor<float> inputTensor;
 
     // --- DAFTAR KELAS SESUAI ROBOFLOW ---
-    private string[] classNames = { "bottle", "eraser", "pen" }; 
+    private string[] classNames = { "iris", "pupil"}; 
 
     [Header("Kamera & UI")]
     public int webcamIndex = 1; // 0 biasanya internal, 1 biasanya eksternal
@@ -42,7 +42,7 @@ public class YoloWebcamDemo : MonoBehaviour
     public float confidenceThreshold = 0.35f;
 
     private const int NUM_PROPOSALS = 3549; 
-    private const int IMAGE_SIZE = 416;
+    private const int IMAGE_SIZE = 540*720; // Resolusi input model (540x720)
 
     // [BARU - LOGGING] Variabel untuk menyimpan path file CSV
     private string logFilePath;

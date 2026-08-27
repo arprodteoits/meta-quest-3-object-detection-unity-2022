@@ -772,13 +772,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 705038f41f3878b4ab8880a1be29429e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  modelAsset: {fileID: 5022602860645237092, guid: 5125c68a4b2058c489e445ce62030f8b,
+  modelAsset: {fileID: 5022602860645237092, guid: 15265ae3b041e5e48b8b9776e3a96523,
     type: 3}
   webcamIndex: 1
   displayImage: {fileID: 329769389}
   boxPrefab: {fileID: 243452841342138518, guid: db0ca2285da028e4fb8d7fc42feb69e4,
     type: 3}
-  interactionManager: {fileID: 922149150}
+  interactionManager: {fileID: 0}
   statsText: {fileID: 451167891}
   smoothingFactor: 0.85
   confidenceThreshold: 0.35
